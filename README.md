@@ -1,7 +1,6 @@
 # スーパーマリオ風ブラウザゲーム
 
 このプロジェクトは、HTML5 と Phaser フレームワークを使用して作られたスーパーマリオ風の 2D プラットフォームゲームです。
-リンクはこちら→https://helpmark-pink.github.io/mario-pakuri/
 
 ## 特徴
 

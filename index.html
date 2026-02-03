@@ -748,7 +748,7 @@
 
           this.player = this.physics.add.sprite(100, 480, "mario-idle");
           this.player.setBounce(0);
-          this.player.setCollideWorldBounds(true);
+          this.player.setCollideWorldBounds(false);
           this.player.setScale(3);
           this.player.body.setSize(14, 16);
           this.player.body.setOffset(1, 0);
@@ -841,8 +841,8 @@
           this.cameras.main.setBounds(0, 0, 3200, 600);
           this.cameras.main.startFollow(this.player);
 
-          // ワールド境界設定
-          this.physics.world.setBounds(0, 0, 3200, 600);
+          // ワールド境界設定（下方向を広げて穴に落ちられるようにする）
+          this.physics.world.setBounds(0, 0, 3200, 1200);
         }
 
         generateStage() {
@@ -1807,8 +1807,17 @@
             this.player.play("jump", true);
           }
 
-          if (this.player.y > 600) {
-            this.playerDeath();
+          if (this.player.y > 650) {
+            this.playerDeath(true);
+          }
+
+          // 左右の壁制限
+          if (this.player.x < 0) {
+            this.player.x = 0;
+            this.player.setVelocityX(0);
+          } else if (this.player.x > 3200) {
+            this.player.x = 3200;
+            this.player.setVelocityX(0);
           }
 
           this.enemies.children.entries.forEach((enemy) => {
@@ -1935,12 +1944,19 @@
           }
         }
 
-        playerDeath() {
+        playerDeath(fallenInHole = false) {
           this.player.active = false;
           this.player.anims.stop();
           this.player.setTint(0xff0000);
-          this.player.setVelocityY(-480);
           this.player.setVelocityX(0);
+
+          if (fallenInHole) {
+            // 穴に落ちた場合：そのまま下に消えていく
+            this.player.setVelocityY(400);
+          } else {
+            // 敵にやられた場合：跳ね上がる演出
+            this.player.setVelocityY(-480);
+          }
 
           this.time.delayedCall(1000, () => {
             this.lives--;
