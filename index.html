@@ -4,20 +4,31 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0b1020" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <title>スーパーマリオ アドベンチャー</title>
     <style>
       * {
         box-sizing: border-box;
       }
+      html {
+        --sab: env(safe-area-inset-bottom, 0px);
+      }
       html,
       body {
         margin: 0;
         padding: 0;
+        width: 100%;
         height: 100%;
         overflow: hidden;
+        position: fixed;
         background: #0b1020;
         font-family:
           -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo,
@@ -26,6 +37,7 @@
         touch-action: none;
         -webkit-user-select: none;
         user-select: none;
+        -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
         overscroll-behavior: none;
       }
@@ -46,10 +58,41 @@
         image-rendering: pixelated;
         image-rendering: crisp-edges;
         background: #000;
-        box-shadow: 0 10px 60px rgba(0, 0, 0, 0.75);
-        border-radius: 4px;
-        max-width: 100%;
-        max-height: 100%;
+        box-shadow: 0 8px 44px rgba(0, 0, 0, 0.7);
+        border-radius: 3px;
+      }
+      /* ---- 縦持ちのときの操作パネル ---- */
+      #deck {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: none;
+        z-index: 10;
+        border-top: 2px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px 18px 0 0;
+        background: linear-gradient(
+          180deg,
+          rgba(38, 52, 96, 0.55) 0%,
+          rgba(12, 18, 40, 0.9) 45%,
+          rgba(8, 12, 26, 1) 100%
+        );
+        text-align: center;
+        padding-top: 14px;
+        overflow: hidden;
+      }
+      #deck.on {
+        display: block;
+      }
+      #deckTitle {
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        color: rgba(255, 214, 90, 0.9);
+        text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+      }
+      #deckHint {
+        margin-top: 6px;
+        color: rgba(220, 230, 255, 0.45);
       }
       /* ---- タッチ操作 ---- */
       #pad {
@@ -64,101 +107,102 @@
       }
       .btn {
         position: absolute;
-        pointer-events: auto;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 800;
-        color: #fff;
-        background: rgba(255, 255, 255, 0.14);
-        border: 2px solid rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.13);
+        border: 2px solid rgba(255, 255, 255, 0.34);
         border-radius: 50%;
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
         transition:
-          transform 0.06s,
-          background 0.06s;
-        font-size: 26px;
+          transform 0.05s linear,
+          background 0.05s linear;
         text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+        line-height: 1;
       }
       .btn.press {
-        background: rgba(255, 255, 255, 0.42);
-        transform: scale(0.93);
-      }
-      #bLeft,
-      #bRight {
-        width: 78px;
-        height: 78px;
-        bottom: 24px;
-      }
-      #bLeft {
-        left: 20px;
-      }
-      #bRight {
-        left: 110px;
-      }
-      #bJump,
-      #bRun {
-        width: 84px;
-        height: 84px;
-        bottom: 24px;
+        background: rgba(255, 255, 255, 0.45);
+        transform: scale(0.92);
       }
       #bJump {
-        right: 20px;
-        background: rgba(90, 200, 120, 0.28);
-        border-color: rgba(160, 255, 190, 0.6);
+        background: rgba(80, 200, 130, 0.24);
+        border-color: rgba(150, 255, 190, 0.55);
+      }
+      #bJump.press {
+        background: rgba(120, 255, 170, 0.55);
       }
       #bRun {
-        right: 116px;
-        bottom: 62px;
-        background: rgba(240, 140, 90, 0.28);
-        border-color: rgba(255, 200, 160, 0.6);
-        font-size: 20px;
+        background: rgba(240, 140, 90, 0.24);
+        border-color: rgba(255, 200, 160, 0.55);
+      }
+      #bRun.press {
+        background: rgba(255, 180, 120, 0.55);
       }
       #topbar {
         position: fixed;
-        top: 8px;
-        right: 10px;
         z-index: 30;
         display: flex;
-        gap: 8px;
+        gap: 6px;
       }
       .chip {
         pointer-events: auto;
         cursor: pointer;
-        font-size: 12px;
-        padding: 6px 10px;
+        white-space: nowrap;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        color: #dfe6ff;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        color: #e6ecff;
       }
-      .chip:hover {
-        background: rgba(255, 255, 255, 0.2);
+      .chip:active {
+        background: rgba(255, 255, 255, 0.3);
       }
-      #boot {
+      #rotate {
         position: fixed;
         inset: 0;
+        z-index: 40;
         display: none;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
+        gap: 14px;
+        background: rgba(8, 12, 26, 0.94);
         text-align: center;
         padding: 24px;
-        font-size: 14px;
-        line-height: 1.8;
-        z-index: 50;
-        background: #0b1020;
+        font-size: 15px;
+        line-height: 1.7;
       }
-      @media (max-width: 900px) {
-        .chip {
-          font-size: 11px;
-          padding: 5px 8px;
+      #rotate.on {
+        display: flex;
+      }
+      #rotate .ph {
+        width: 54px;
+        height: 92px;
+        border: 3px solid #9fb4ff;
+        border-radius: 10px;
+        animation: tilt 1.8s ease-in-out infinite;
+      }
+      @keyframes tilt {
+        0%,
+        40% {
+          transform: rotate(0deg);
+        }
+        70%,
+        100% {
+          transform: rotate(-90deg);
         }
       }
     </style>
   </head>
   <body>
     <div id="stage"><canvas id="game" width="1024" height="576"></canvas></div>
+
+    <div id="deck">
+      <div id="deckTitle">SUPER MARIO ADVENTURE</div>
+      <div id="deckHint">横向きにすると画面が大きくなります</div>
+    </div>
 
     <div id="pad">
       <div class="btn" id="bLeft">◀</div>
@@ -168,11 +212,19 @@
     </div>
 
     <div id="topbar">
+      <div class="chip" id="cPad">📱 スマホ表示</div>
       <div class="chip" id="cSound">♪ ON</div>
+      <div class="chip" id="cPause">❚❚</div>
       <div class="chip" id="cFull">全画面</div>
     </div>
 
-    <div id="boot"></div>
+    <div id="rotate">
+      <div class="ph"></div>
+      <div>スマホを横向きにすると<br />画面が大きくなります</div>
+      <div style="font-size: 12px; opacity: 0.6">
+        （このままタップすれば縦画面でも遊べます）
+      </div>
+    </div>
 
     <script>
       "use strict";
@@ -1897,6 +1949,8 @@
         var Input = {
           held: {},
           pressed: {},
+          touch: false,
+          buttons: [],
           _bind: function (name, on) {
             if (on) {
               if (!this.held[name]) this.pressed[name] = true;
@@ -1905,12 +1959,23 @@
               this.held[name] = false;
             }
           },
+          releaseAll: function () {
+            this.held = {};
+            for (var i = 0; i < this.buttons.length; i++)
+              this.buttons[i].el.classList.remove("press");
+          },
           endFrame: function () {
             this.pressed = {};
           },
           anyPressed: function () {
             for (var k in this.pressed) if (this.pressed[k]) return true;
             return false;
+          },
+          refreshRects: function () {
+            for (var i = 0; i < this.buttons.length; i++) {
+              var b = this.buttons[i];
+              b.rect = b.el.getBoundingClientRect();
+            }
           },
           init: function () {
             if (HEADLESS) return;
@@ -1952,48 +2017,204 @@
               if (n) self._bind(n, false);
             });
             window.addEventListener("blur", function () {
-              self.held = {};
+              self.releaseAll();
+            });
+            document.addEventListener("visibilitychange", function () {
+              if (document.hidden) self.releaseAll();
             });
 
+            /* ---------------- タッチ操作 ----------------
+             * 個々のボタンに listener を付けるとゆびをすべらせた時に
+             * 入力が残る／効かないので、画面全体で全タッチを見て
+             * 毎回ボタンの矩形と当たり判定をとる方式にする。
+             */
             var pad = document.getElementById("pad");
+            this.padEl = pad;
+            var forced = false;
+            try {
+              forced = /[?&#](touch|pad)=1/.test(
+                (window.location && window.location.search) +
+                  (window.location && window.location.hash),
+              );
+            } catch (e) {}
             var isTouch =
-              "ontouchstart" in window || navigator.maxTouchPoints > 0;
-            if (isTouch) pad.classList.add("on");
+              forced ||
+              "ontouchstart" in window ||
+              navigator.maxTouchPoints > 0 ||
+              (window.matchMedia &&
+                window.matchMedia("(pointer: coarse)").matches);
+            this.touch = isTouch;
+            if (isTouch && pad) pad.classList.add("on");
 
-            function hook(id, name) {
-              var el = document.getElementById(id);
-              if (!el) return;
-              var down = function (e) {
-                e.preventDefault();
-                self._bind(name, true);
-                el.classList.add("press");
-                Snd.resume();
-              };
-              var up = function (e) {
-                e.preventDefault();
-                self._bind(name, false);
-                el.classList.remove("press");
-              };
-              el.addEventListener("touchstart", down, { passive: false });
-              el.addEventListener("touchend", up, { passive: false });
-              el.addEventListener("touchcancel", up, { passive: false });
-              el.addEventListener("mousedown", down);
-              el.addEventListener("mouseup", up);
-              el.addEventListener("mouseleave", up);
+            var names = ["left", "right", "jump", "run"];
+            [
+              ["bLeft", "left"],
+              ["bRight", "right"],
+              ["bJump", "jump"],
+              ["bRun", "run"],
+            ].forEach(function (d) {
+              var el = document.getElementById(d[0]);
+              if (el) self.buttons.push({ el: el, name: d[1], rect: null });
+            });
+
+            function hitButton(x, y) {
+              for (var i = 0; i < self.buttons.length; i++) {
+                var b = self.buttons[i],
+                  r = b.rect;
+                if (!r) continue;
+                // 少し広めに判定して押しやすくする
+                var m = Math.min(r.width, r.height) * 0.28;
+                if (
+                  x >= r.left - m &&
+                  x <= r.right + m &&
+                  y >= r.top - m &&
+                  y <= r.bottom + m
+                )
+                  return b;
+              }
+              return null;
             }
-            hook("bLeft", "left");
-            hook("bRight", "right");
-            hook("bJump", "jump");
-            hook("bRun", "run");
 
-            // 画面タップでもスタートできるように
-            document
-              .getElementById("stage")
-              .addEventListener("pointerdown", function () {
-                self._bind("start", true);
-                self.held.start = false;
+            function applyTouches(e) {
+              var active = {};
+              var list = e.touches || [];
+              for (var i = 0; i < list.length; i++) {
+                var b = hitButton(list[i].clientX, list[i].clientY);
+                if (b) active[b.name] = true;
+              }
+              for (var k = 0; k < names.length; k++)
+                self._bind(names[k], !!active[names[k]]);
+              for (var j = 0; j < self.buttons.length; j++) {
+                var bt = self.buttons[j];
+                if (active[bt.name]) bt.el.classList.add("press");
+                else bt.el.classList.remove("press");
+              }
+              return active;
+            }
+
+            function inChip(e) {
+              var t = e.target;
+              while (t && t !== document.body) {
+                if (t.id === "topbar") return true;
+                t = t.parentNode;
+              }
+              return false;
+            }
+
+            document.addEventListener(
+              "touchstart",
+              function (e) {
+                if (inChip(e)) return;
+                e.preventDefault();
+                Snd.init();
                 Snd.resume();
-              });
+                if (!self.buttons.length || !self.buttons[0].rect)
+                  self.refreshRects();
+                var active = applyTouches(e);
+                var onBtn = false;
+                for (var k in active) if (active[k]) onBtn = true;
+                if (!onBtn) {
+                  // ボタン以外をタップ＝スタート／決定
+                  self._bind("start", true);
+                  self.held.start = false;
+                }
+              },
+              { passive: false },
+            );
+            document.addEventListener(
+              "touchmove",
+              function (e) {
+                if (inChip(e)) return;
+                e.preventDefault();
+                applyTouches(e);
+              },
+              { passive: false },
+            );
+            var endT = function (e) {
+              if (inChip(e)) return;
+              applyTouches(e);
+            };
+            document.addEventListener("touchend", endT, { passive: false });
+            document.addEventListener("touchcancel", endT, { passive: false });
+
+            // iOS のピンチ／ダブルタップ拡大を止める
+            ["gesturestart", "gesturechange", "gestureend"].forEach(
+              function (n) {
+                document.addEventListener(
+                  n,
+                  function (e) {
+                    e.preventDefault();
+                  },
+                  { passive: false },
+                );
+              },
+            );
+            var lastTap = 0;
+            document.addEventListener(
+              "touchend",
+              function (e) {
+                var now = Date.now();
+                if (now - lastTap < 320) e.preventDefault();
+                lastTap = now;
+              },
+              { passive: false },
+            );
+
+            /* --- マウス／トラックパッド ---
+             * 画面ボタンを出している時はマウスでも押せるようにする
+             * （PC でスマホ表示を確認するときに使う） */
+            var mouseOn = false;
+            function applyPointer(e) {
+              var b = self.touch ? hitButton(e.clientX, e.clientY) : null;
+              var active = {};
+              if (b) active[b.name] = true;
+              for (var k = 0; k < names.length; k++)
+                self._bind(names[k], !!active[names[k]]);
+              for (var j = 0; j < self.buttons.length; j++) {
+                var bt = self.buttons[j];
+                if (active[bt.name]) bt.el.classList.add("press");
+                else bt.el.classList.remove("press");
+              }
+              return !!b;
+            }
+            document.addEventListener("pointerdown", function (e) {
+              if (e.pointerType === "touch" || inChip(e)) return;
+              Snd.init();
+              Snd.resume();
+              self.refreshRects();
+              if (applyPointer(e)) {
+                mouseOn = true;
+                return;
+              }
+              self._bind("start", true);
+              self.held.start = false;
+            });
+            document.addEventListener("pointermove", function (e) {
+              if (e.pointerType === "touch" || !mouseOn) return;
+              applyPointer(e);
+            });
+            var upP = function (e) {
+              if (e && e.pointerType === "touch") return;
+              if (!mouseOn) return;
+              mouseOn = false;
+              for (var k = 0; k < names.length; k++)
+                self._bind(names[k], false);
+              for (var j = 0; j < self.buttons.length; j++)
+                self.buttons[j].el.classList.remove("press");
+            };
+            document.addEventListener("pointerup", upP);
+            document.addEventListener("pointercancel", upP);
+            window.addEventListener("pointerup", upP);
+          },
+
+          /* 画面ボタンの表示を切り替える（PC でのスマホ表示確認用） */
+          setPad: function (on) {
+            this.touch = !!on;
+            if (this.padEl) {
+              if (on) this.padEl.classList.add("on");
+              else this.padEl.classList.remove("on");
+            }
+            if (!on) this.releaseAll();
           },
         };
 
@@ -4990,15 +5211,160 @@
         var game = new Game();
         var renderer = null;
 
+        /* 画面サイズに合わせてキャンバスとタッチボタンを配置し直す。
+         * 縦持ちのときは上に画面・下にボタン、横持ちのときは全画面＋
+         * 手前にボタンを重ねる。 */
         function fitCanvas() {
           if (HEADLESS) return;
           var cv = document.getElementById("game");
-          var pad = 0;
-          var aw = window.innerWidth - pad,
-            ah = window.innerHeight - pad;
-          var scale = Math.min(aw / 1024, ah / 576);
-          cv.style.width = Math.floor(1024 * scale) + "px";
-          cv.style.height = Math.floor(576 * scale) + "px";
+          var stage = document.getElementById("stage");
+          var bar = document.getElementById("topbar");
+          var rot = document.getElementById("rotate");
+          if (!cv || !stage) return;
+          var vv = window.visualViewport;
+          var W = Math.round(vv ? vv.width : window.innerWidth);
+          var H = Math.round(vv ? vv.height : window.innerHeight);
+          var touch = Input.touch;
+          var portrait = H > W * 1.02;
+
+          var safeB = 0;
+          try {
+            var probe = getComputedStyle(
+              document.documentElement,
+            ).getPropertyValue("--sab");
+            safeB = parseInt(probe, 10) || 0;
+          } catch (e) {}
+
+          var scale, cw, ch, padTop;
+          if (touch && portrait) {
+            // 縦持ち：画面は上半分、下はコントローラ領域
+            var availH = H * 0.5;
+            scale = Math.min(W / 1024, availH / 576);
+            cw = Math.floor(1024 * scale);
+            ch = Math.floor(576 * scale);
+            var offTop = Math.round(Math.min(H * 0.06, 56));
+            padTop = offTop + ch;
+            stage.style.alignItems = "flex-start";
+            stage.style.paddingTop = offTop + "px";
+          } else {
+            scale = Math.min(W / 1024, H / 576);
+            cw = Math.floor(1024 * scale);
+            ch = Math.floor(576 * scale);
+            padTop = H;
+            stage.style.alignItems = "center";
+            stage.style.paddingTop = "0px";
+          }
+          cv.style.width = cw + "px";
+          cv.style.height = ch + "px";
+
+          // 上部のチップ
+          var chipFs = Math.max(10, Math.min(13, Math.round(W / 70)));
+          if (bar && bar.children) {
+            bar.style.top = (touch && portrait ? 6 : 8) + "px";
+            bar.style.right = "8px";
+            for (var c = 0; c < bar.children.length; c++) {
+              var ch2 = bar.children[c];
+              ch2.style.fontSize = chipFs + "px";
+              ch2.style.padding =
+                Math.round(chipFs * 0.5) +
+                "px " +
+                Math.round(chipFs * 0.85) +
+                "px";
+            }
+          }
+          var full = document.getElementById("cFull");
+          if (full)
+            full.style.display = document.documentElement.requestFullscreen
+              ? ""
+              : "none";
+
+          if (!touch) {
+            if (rot) rot.classList.remove("on");
+            return;
+          }
+
+          // タッチボタンの配置
+          // 縦持ち：← → を左、DASH を JUMP の真上に積む
+          // 横持ち：← → を左、DASH / JUMP を右に少し段差をつけて置く
+          var size, bottom, edge, gap, band;
+          if (portrait) {
+            band = H - padTop;
+            edge = Math.round(Math.min(W * 0.05, 20));
+            // ← → ＋ JUMP が横に並ぶので 3個分＋すき間が入る幅に収める
+            size = Math.min(W * 0.23, band * 0.33, (W - 2 * edge) / 3.25, 120);
+            size = Math.round(Math.max(52, size));
+            gap = Math.round(size * 0.2);
+            bottom = Math.round(
+              clamp(band * 0.16, 14, Math.max(14, band - size * 2 - gap - 12)) +
+                safeB,
+            );
+          } else {
+            edge = Math.round(Math.max(10, Math.min(W * 0.025, 28)));
+            size = Math.min(H * 0.24, (W - 2 * edge) / 4.4, 104);
+            size = Math.round(Math.max(52, size));
+            gap = Math.round(size * 0.16);
+            bottom = Math.round(Math.max(10, Math.min(H * 0.05, 34)) + safeB);
+          }
+
+          // 縦持ちは下半分をパネルにして、余白を「本体」に見せる
+          var deck = document.getElementById("deck");
+          if (deck) {
+            if (portrait) {
+              deck.classList.add("on");
+              deck.style.top = padTop + 6 + "px";
+              deck.style.height = H - padTop - 6 + "px";
+              deck.style.paddingTop =
+                Math.round(Math.max(12, (H - padTop) * 0.07)) + "px";
+              var tf = Math.max(11, Math.min(16, Math.round(W / 26)));
+              var dt = document.getElementById("deckTitle");
+              var dh = document.getElementById("deckHint");
+              if (dt) dt.style.fontSize = tf + "px";
+              if (dh) dh.style.fontSize = Math.round(tf * 0.72) + "px";
+            } else deck.classList.remove("on");
+          }
+
+          function place(id, css) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var s = css.size || size;
+            el.style.width = s + "px";
+            el.style.height = s + "px";
+            el.style.bottom = css.bottom + "px";
+            if (css.left != null) {
+              el.style.left = css.left + "px";
+              el.style.right = "auto";
+            } else {
+              el.style.right = css.right + "px";
+              el.style.left = "auto";
+            }
+            el.style.fontSize =
+              Math.round(s * (id === "bRun" ? 0.21 : 0.36)) + "px";
+          }
+          var runSize = Math.round(size * 0.84);
+          place("bLeft", { left: edge, bottom: bottom });
+          place("bRight", { left: edge + size + gap, bottom: bottom });
+          place("bJump", { right: edge, bottom: bottom });
+          if (portrait)
+            place("bRun", {
+              right: edge + Math.round((size - runSize) / 2),
+              bottom: bottom + size + gap,
+              size: runSize,
+            });
+          else
+            place("bRun", {
+              right: edge + size + gap,
+              bottom: bottom + Math.round(size * 0.3),
+              size: runSize,
+            });
+
+          if (rot) {
+            // 縦持ちの案内は最初の数秒だけ
+            if (portrait && !fitCanvas._rotShown) rot.classList.add("on");
+            else rot.classList.remove("on");
+          }
+          setTimeout(function () {
+            Input.refreshRects();
+          }, 0);
         }
 
         function boot() {
@@ -5008,10 +5374,80 @@
             var cv = document.getElementById("game");
             renderer = new Renderer(cv);
             fitCanvas();
-            window.addEventListener("resize", fitCanvas);
+            Input.refreshRects();
+
+            var relayout = function () {
+              fitCanvas();
+              Input.refreshRects();
+            };
+            window.addEventListener("resize", relayout);
+            window.addEventListener("scroll", relayout, { passive: true });
+            if (window.visualViewport) {
+              window.visualViewport.addEventListener("resize", relayout);
+              window.visualViewport.addEventListener("scroll", relayout);
+            }
             window.addEventListener("orientationchange", function () {
-              setTimeout(fitCanvas, 200);
+              setTimeout(relayout, 120);
+              setTimeout(relayout, 450);
             });
+            // アドレスバーの出入りでサイズが変わることがあるので保険
+            setInterval(function () {
+              var vv = window.visualViewport;
+              var w = Math.round(vv ? vv.width : window.innerWidth);
+              var h = Math.round(vv ? vv.height : window.innerHeight);
+              if (w !== relayout._w || h !== relayout._h) {
+                relayout._w = w;
+                relayout._h = h;
+                relayout();
+              }
+            }, 600);
+
+            // 縦持ちの案内は一度さわったら消す
+            var rot = document.getElementById("rotate");
+            var hideRot = function () {
+              fitCanvas._rotShown = true;
+              if (rot) rot.classList.remove("on");
+            };
+            if (rot)
+              rot.addEventListener("pointerdown", hideRot, { passive: true });
+            document.addEventListener("touchstart", hideRot, { passive: true });
+            document.addEventListener("pointerdown", hideRot, {
+              passive: true,
+            });
+
+            // バックグラウンドに回ったら自動でポーズ
+            document.addEventListener("visibilitychange", function () {
+              if (document.hidden && game.state === "play") game.paused = true;
+            });
+
+            // PC でスマホ表示を確認するための切り替え
+            var padChip = document.getElementById("cPad");
+            if (padChip) {
+              var syncPadChip = function () {
+                padChip.textContent = Input.touch
+                  ? "📱 スマホ表示 ON"
+                  : "📱 スマホ表示";
+                padChip.style.background = Input.touch
+                  ? "rgba(120,200,255,0.28)"
+                  : "";
+              };
+              syncPadChip();
+              padChip.addEventListener("click", function () {
+                Input.setPad(!Input.touch);
+                syncPadChip();
+                relayout();
+              });
+            }
+
+            var pauseChip = document.getElementById("cPause");
+            if (pauseChip)
+              pauseChip.addEventListener("click", function () {
+                if (game.state !== "title") game.paused = !game.paused;
+                pauseChip.textContent = game.paused ? "▶" : "❚❚";
+              });
+
+            var deckTitle = document.getElementById("deckTitle");
+            var lastDeck = null;
 
             var soundChip = document.getElementById("cSound");
             soundChip.addEventListener("click", function () {
@@ -5062,6 +5498,18 @@
                 while (acc >= STEP && guard++ < 8) {
                   game.update(STEP);
                   acc -= STEP;
+                }
+              }
+              if (deckTitle) {
+                var dtxt =
+                  game.state === "title"
+                    ? "SUPER MARIO ADVENTURE"
+                    : game.level && game.level.name
+                      ? game.level.name
+                      : "";
+                if (dtxt !== lastDeck) {
+                  deckTitle.textContent = dtxt;
+                  lastDeck = dtxt;
                 }
               }
               Snd.musicTick();
